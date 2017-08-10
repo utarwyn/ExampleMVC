@@ -1,0 +1,7 @@
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} !-f [OR]
+RewriteCond %{REQUEST_URI} /core/(.*)$ [OR]
+RewriteCond %{REQUEST_URI} /app/(.*)$ [OR]
+RewriteCond %{REQUEST_URI} /config/(.*)$
+RewriteRule ^(.*)$ public/index.php?uri=$1 [QSA,L]
