@@ -1,53 +1,54 @@
 <?php
+
 namespace Core;
 
-class Config {
+class Config
+{
 
-	private static $_instance;
+    private static $_instance;
 
-	private $data;
+    private $data;
 
+    private function __construct()
+    {
+        $configFile = ROOT . DS . 'config' . DS . 'config.php';
 
-	private function __construct() {
-		$configFile = ROOT . DS . 'config' . DS . 'config.php';
+        if (file_exists($configFile)) {
+            require $configFile;
+            $this->data = (isset($config)) ? $config : array();
+        }
+    }
 
-		if (file_exists($configFile)) {
-			require $configFile;
-			$this->data = (isset($config)) ? $config : array();
-		}
-	}
+    public static function getInstance()
+    {
+        if (is_null(self::$_instance))
+            self::$_instance = new Config();
 
+        return self::$_instance;
+    }
 
-	public function getValue($key) {
-		$value = null;
-		$path  = explode('.', $key);
+    public function getDbConfig()
+    {
+        $database = $this->getValue("database");
 
-		foreach ($path as $v)
-			if ($value != null && isset($value[$v]))
-				$value = $value[$v];
-			else if ($value == null && isset($this->data[$v]))
-				$value = $this->data[$v];
-			else
-				$value = null;
+        if (is_array($database)) return $database;
+        else                     return $this->getValue("databases." . $database);
+    }
 
-		return $value;
-	}
+    public function getValue($key)
+    {
+        $value = null;
+        $path = explode('.', $key);
 
-	public function getDbConfig() {
-		$database = $this->getValue("database");
+        foreach ($path as $v)
+            if ($value != null && isset($value[$v]))
+                $value = $value[$v];
+            else if ($value == null && isset($this->data[$v]))
+                $value = $this->data[$v];
+            else
+                $value = null;
 
-		if (is_array($database)) return $database;
-		else                     return $this->getValue("databases." . $database);
-	}
-
-
-
-	public static function getInstance() {
-		if (is_null(self::$_instance))
-			self::$_instance = new Config();
-
-		return self::$_instance;
-	}
+        return $value;
+    }
 
 }
-?>

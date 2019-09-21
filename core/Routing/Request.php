@@ -1,18 +1,21 @@
 <?php
+
 namespace Core\Routing;
 
-class Request {
+class Request
+{
 
-	public $url;
+    public $url;
 
-	public $controller;
-	public $action;
-	public $params;
+    public $controller;
 
+    public $action;
 
-	public function __construct() {
-		$this->url = (isset($_GET['uri'])) ? $_GET['uri'] : "";
-	}
+    public $params;
+
+    public function __construct()
+    {
+        $this->url = (isset($_GET['uri'])) ? $_GET['uri'] : "";
+    }
 
 }
-?>

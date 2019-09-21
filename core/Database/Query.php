@@ -2,6 +2,7 @@
 
 namespace core\Database;
 
-class Query {
+class Query
+{
 
 }

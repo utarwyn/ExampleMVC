@@ -1,71 +1,77 @@
 <?php
+
 namespace Core\Controller;
 
 use Core\Config;
 
-class Controller {
+class Controller
+{
 
-	protected $table_class;
-	protected $template;
-	protected $useTable;
+    protected $table_class;
 
-	private   $table;
+    protected $template;
 
+    protected $useTable;
 
-	public function __construct() {
-		/*     Détection automatique du template à utiliser     */
-		if (is_null($this->template))
-			$this->template = Config::getInstance()->getValue("template");
+    private $table;
 
-		/*     Détection automatique de la table à utiliser    */
-		if (is_null($this->useTable) || $this->useTable) {
-			if (is_null($this->table_class)) {
-				$parts = explode('\\', get_class($this));
-				$class_name = end($parts);
+    public function __construct()
+    {
+        /*     Détection automatique du template à utiliser     */
+        if (is_null($this->template)) {
+            $this->template = Config::getInstance()->getValue("template");
+        }
 
-				$this->table_class = str_replace('sController', 'Table', $class_name);
-			} else {
-				$this->table_class = ucfirst($this->table_class) . 'Table';
-			}
+        /*     Détection automatique de la table à utiliser    */
+        if (is_null($this->useTable) || $this->useTable) {
+            if (is_null($this->table_class)) {
+                $parts = explode('\\', get_class($this));
+                $class_name = end($parts);
 
-			$table_classpath = '\App\Table\\' . $this->table_class;
-			$this->table = new $table_classpath(\App::getDb());
-		}
-	}
+                $this->table_class = str_replace('sController', 'Table', $class_name);
+            } else {
+                $this->table_class = ucfirst($this->table_class) . 'Table';
+            }
 
-	public function getTable() {
-		return $this->table;
-	}
+            $table_classpath = '\App\Table\\' . $this->table_class;
+            $this->table = new $table_classpath(\App::getDb());
+        }
+    }
 
+    public function getTable()
+    {
+        return $this->table;
+    }
 
+    public function render($view_name, $variables = null)
+    {
+        if ($this->template == null) return;
 
-	public function render($view_name, $variables = null) {
-		if ($this->template == null) return;
+        // On extrait les variables s'il y en a
+        if (!is_null($variables)) {
+            extract($variables);
+        }
 
-		// On extrait les variables s'il y en a
-		if (!is_null($variables))
-			extract($variables);
+        /* -----------------------------
+           -    Affichage de la vue    -
+           ----------------------------- */
+        $view_path = str_replace('.', '/', $view_name);
+        $viewFile = APP . DS . 'Views' . DS . $view_path . '.php';
+        // TODO : afficher une erreur lorsque la vue n'existe pas
 
-		/* -----------------------------
-		   -    Affichage de la vue    -
-		   ----------------------------- */
-		$view_path = str_replace('.', '/', $view_name);
-		$viewFile  = APP . DS . 'Views' . DS . $view_path . '.php';
-		// TODO : afficher une erreur lorsque la vue n'existe pas
-		
-		if (file_exists($viewFile)) {
-			ob_start();
-			require $viewFile;
-			$content_for_layout = ob_get_clean();
-		}
+        if (file_exists($viewFile)) {
+            ob_start();
+            require $viewFile;
+            $content_for_layout = ob_get_clean();
+        }
 
-		/* -----------------------------
-		   -   Affichage du template   -
-		   ----------------------------- */
-		$templateFile = APP . DS . 'Views' . DS . 'templates' . DS . $this->template . '.php';
-		if (file_exists($templateFile))
-			require $templateFile;
-	}
+        /* -----------------------------
+           -   Affichage du template   -
+           ----------------------------- */
+        $templateFile = APP . DS . 'Views' . DS . 'templates' . DS . $this->template . '.php';
+        if (file_exists($templateFile)) {
+            require $templateFile;
+        }
+    }
 
 }
-?>

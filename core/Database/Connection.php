@@ -1,66 +1,78 @@
 <?php
+
 namespace Core\Database;
 
 use Core\Database\Exception\MissingDriverException;
 use Core\Database\Exception\MissingExtensionException;
 
-class Connection {
+class Connection
+{
 
-	protected $_config;
-	/** @var $_driver Driver */
-	protected $_driver;
-	protected $_logger;
+    protected $_config;
 
-	protected $_logQueries = false;
+    /** @var $_driver Driver */
+    protected $_driver;
 
+    protected $_logger;
 
-	public function __construct($config) {
-		$this->_config = $config;
+    protected $_logQueries = false;
 
-		$driver = '';
-		if (!empty($config['driver']))
-			$driver = $config['driver'];
+    public function __construct($config)
+    {
+        $this->_config = $config;
 
-		$this->setDriver($driver, $config);
-	}
+        $driver = '';
+        if (!empty($config['driver'])) {
+            $driver = $config['driver'];
+        }
 
-	public function __destruct() {
-		unset($this->_driver);
-	}
+        $this->setDriver($driver, $config);
+    }
 
+    public function setDriver($driver, $config = [])
+    {
+        $className = "Driver/$driver";
 
-	public function setDriver($driver, $config = []) {
-		$className = "Driver/$driver";
-		if (!class_exists($className))
-			throw new MissingDriverException(["driver" => $driver]);
+        if (!class_exists($className)) {
+            throw new MissingDriverException(["driver" => $driver]);
+        }
 
-		/** @var Driver $driver */
-		$driver = new $className($config);
+        /** @var Driver $driver */
+        $driver = new $className($config);
 
-		if (!$driver->enabled())
-			throw new MissingExtensionException(['driver' => get_class($driver)]);
+        if (!$driver->enabled()) {
+            throw new MissingExtensionException(['driver' => get_class($driver)]);
+        }
 
-		$this->_driver = $driver;
-		return $this;
-	}
+        $this->_driver = $driver;
+        return $this;
+    }
 
+    public function __destruct()
+    {
+        unset($this->_driver);
+    }
 
+    /**
+     * @param $sql string La requête à executer
+     * @return mixed
+     */
+    public function query($sql)
+    {
+        $statement = $this->prepare($sql);
+        $statement->execute();
+        return $statement;
+    }
 
-	public function prepare($sql) {
-		$statement = $this->_driver->prepare($sql);
-		if ($this->_logQueries) $statement = $this->_newLogger($statement);
+    public function prepare($sql)
+    {
+        $statement = $this->_driver->prepare($sql);
 
-		return $statement;
-	}
+        if ($this->_logQueries) {
+            $statement = $this->_newLogger($statement);
+        }
 
-	/**
-	 * @param $sql string La requête à executer
-	 * @return mixed
-	 */
-	public function query($sql) {
-		$statement = $this->prepare($sql);
-		$statement->execute();
-		return $statement;
-	}
+        return $statement;
+    }
 
 }

@@ -1,96 +1,116 @@
 <?php
+
 namespace Core\Database\Driver;
 
 use MongoDB\Driver\Query;
 use PDO;
+use PDOException;
 use PDOStatement;
 
-trait PDODriverTrait {
+trait PDODriverTrait
+{
 
-	protected $_connection;
+    protected $_connection;
 
+    public function disconnect()
+    {
+        $this->_connection = null;
+    }
 
-	protected function _connect($dsn, array $config) {
-		$connection = new PDO(
-			$dsn,
-			$config['username'],
-			$config['password'],
-			$config['flags']
-		);
+    public function isConnected()
+    {
+        if ($this->_connection === null) {
+            $connected = false;
+        } else {
+            try {
+                $connected = $this->_connection->query('SELECT 1');
+            } catch (PDOException $e) {
+                $connected = false;
+            }
+        }
 
-		$this->connection($connection);
-		return true;
-	}
+        return (bool)$connected;
+    }
 
-	public function connection($connection = null) {
-		if ($connection !== null)
-			$this->_connection = $connection;
+    public function prepare($query)
+    {
+        $this->connect();
+        $isObject = $query instanceof Query;
+        $statement = $this->_connection->prepare($isObject ? $query->sql() : $query);
+        return new PDOStatement($statement, $this);
+    }
 
-		return $this->_connection;
-	}
+    public function beginTransaction()
+    {
+        $this->connect();
 
+        if ($this->_connection->inTransaction()) {
+            return true;
+        }
 
-	public function disconnect() {
-		$this->_connection = null;
-	}
+        return $this->_connection->beginTransaction();
+    }
 
-	public function isConnected() {
-		if ($this->_connection === null)
-			$connected = false;
-		else {
-			try {
-				$connected = $this->_connection->query('SELECT 1');
-			} catch (\PDOException $e) {
-				$connected = false;
-			}
-		}
-		return (bool)$connected;
-	}
+    public function commitTransaction()
+    {
+        $this->connect();
 
-	public function prepare($query) {
-		$this->connect();
-		$isObject = $query instanceof Query;
-		$statement = $this->_connection->prepare($isObject ? $query->sql() : $query);
-		return new PDOStatement($statement, $this);
-	}
+        if (!$this->_connection->inTransaction()) {
+            return false;
+        }
 
-	public function beginTransaction() {
-		$this->connect();
-		if ($this->_connection->inTransaction()) return true;
+        return $this->_connection->commit();
+    }
 
-		return $this->_connection->beginTransaction();
-	}
+    public function rollbackTransaction()
+    {
+        $this->connect();
 
-	public function commitTransaction() {
-		$this->connect();
-		if (!$this->_connection->inTransaction()) return false;
+        if (!$this->_connection->inTransaction()) {
+            return false;
+        }
 
-		return $this->_connection->commit();
-	}
+        return $this->_connection->rollback();
+    }
 
-	public function rollbackTransaction() {
-		$this->connect();
+    public function quote($value, $type)
+    {
+        $this->connect();
+        return $this->_connection->quote($value, $type);
+    }
 
-		if (!$this->_connection->inTransaction())
-			return false;
+    public function lastInsertId($table = null, $column = null)
+    {
+        $this->connect();
+        return $this->_connection->lastInsertId($table);
+    }
 
-		return $this->_connection->rollback();
-	}
+    public function supportsQuoting()
+    {
+        $this->connect();
+        return $this->_connection->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'odbc';
+    }
 
-	public function quote($value, $type) {
-		$this->connect();
-		return $this->_connection->quote($value, $type);
-	}
+    protected function _connect($dsn, array $config)
+    {
+        $connection = new PDO(
+            $dsn,
+            $config['username'],
+            $config['password'],
+            $config['flags']
+        );
 
-	public function lastInsertId($table = null, $column = null) {
-		$this->connect();
-		return $this->_connection->lastInsertId($table);
-	}
+        $this->connection($connection);
+        return true;
+    }
 
+    public function connection($connection = null)
+    {
+        if ($connection !== null) {
+            $this->_connection = $connection;
+        }
 
-	public function supportsQuoting() {
-		$this->connect();
-		return $this->_connection->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'odbc';
-	}
+        return $this->_connection;
+    }
 
 }
